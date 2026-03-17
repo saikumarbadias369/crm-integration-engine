@@ -16,7 +16,8 @@ const refreshTokens = {}
 
 
 app.get("/authorize", (req, res) => {
-    const { client_id } = req.body
+    console.log(req.query)
+    const { redirect_uri, client_id } = req.query
     if (!client_id) {
         return res.status(400).json({ message: "Client ID required" })
     }
@@ -25,24 +26,51 @@ app.get("/authorize", (req, res) => {
 
     authorizationCodes[authorizationCode] = client_id
 
-    res.json({ message: "Authorization Success", authorization_code: authorizationCode })
+    res.redirect(`${redirect_uri}?code=${authorizationCode}`)
+
+    // res.json({ message: "Authorization Success", authorization_code: authorizationCode })
+
 })
 
 
-app.get("/token", (req, res) => {
-    const { code, client_id } = req.body
-    if (!authorizationCodes[code] || authorizationCodes[code] !== client_id) {
-        res.status(400).json({ message: "Invalid Authendication code" })
-    }
-    const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "2m" })
-    const refresh_token = jwt.sign({ client_id }, "refresh-secrete", { expiresIn: "5m" })
+app.post("/token", (req, res) => {
+    console.log(req.body)
+    const { grant_type } = req.body
+    if (grant_type === "refresh_token") {
+        const { refresh_token } = req.body
 
-    refreshTokens[refresh_token] = client_id
-    delete authorizationCodes[code]
-    res.json({
-        access_token: token,
-        refresh_token: refresh_token
-    })
+        if (!refreshTokens[refresh_token]) {
+            return res.status(400).json({ mesage: "Invalid refresh token" })
+        }
+        const client_id = refreshTokens[refresh_token]
+
+        const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "1m" })
+        // const new_refresh_token = jwt.sign({ client_id }, "refresh-secrete", { expiresIn: "15m" })
+
+        res.json({
+            access_token: token,
+            // refresh_token: refresh_token,
+            expires_in: 60
+        })
+    }
+    if (grant_type === "authorization_code") {
+        const { code, client_id } = req.body
+        if (!authorizationCodes[code] || authorizationCodes[code] !== client_id) {
+            res.status(400).json({ message: "Invalid Authendication code" })
+        }
+        const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "1m" })
+        const refresh_token = jwt.sign({ client_id }, "refresh-secrete", { expiresIn: "10m" })
+
+        refreshTokens[refresh_token] = client_id
+        delete authorizationCodes[code]
+
+        res.json({
+            access_token: token,
+            refresh_token: refresh_token,
+            expires_in: 600
+        })
+    }
+
 
 
 })
@@ -67,7 +95,7 @@ app.get("/contact", (req, res) => {
 
 app.post('/contact', (req, res) => {
     const { name, email } = req.body
-    if (!name || email) {
+    if (!name && !email) {
         return res.status(400).json({ message: "email and name are required" })
     }
 
