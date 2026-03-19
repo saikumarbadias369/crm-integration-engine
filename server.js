@@ -44,7 +44,7 @@ app.post("/token", (req, res) => {
         }
         const client_id = refreshTokens[refresh_token]
 
-        const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "1m" })
+        const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "2m" })
         // const new_refresh_token = jwt.sign({ client_id }, "refresh-secrete", { expiresIn: "15m" })
 
         res.json({
@@ -58,7 +58,7 @@ app.post("/token", (req, res) => {
         if (!authorizationCodes[code] || authorizationCodes[code] !== client_id) {
             res.status(400).json({ message: "Invalid Authendication code" })
         }
-        const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "1m" })
+        const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "2m" })
         const refresh_token = jwt.sign({ client_id }, "refresh-secrete", { expiresIn: "10m" })
 
         refreshTokens[refresh_token] = client_id
@@ -75,22 +75,43 @@ app.post("/token", (req, res) => {
 
 })
 
+// app.get("/contact", (req, res) => {
+//     const authheadder = req.headers.authorization
+//     if (!authheadder) {
+//         return res.status(401).json("Missing Token")
+//     }
+//     const token = authheadder.split(" ")[1];
+//     try {
+
+//         jwt.verify(token, "access-secrete")
+//         res.json({ contacts })
+//     } catch (e) {
+//         res.status(401).json({ message: "Invalid or expired access token" })
+//     }
+
+
+// })
+
 app.get("/contact", (req, res) => {
-    const authheadder = req.headers.authorization
-    if (!authheadder) {
-        return res.status(401).json("Missing Token")
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Missing or invalid token format" });
     }
-    const token = authheadder.split(" ")[1];
+
+    const token = authHeader.split(" ")[1];
+
     try {
+        const decoded = jwt.verify(token, "access-secrete"); // ensure same secret
 
-        jwt.verify(token, "access-secrete")
-        res.json({ contacts })
-    } catch (e) {
-        res.status(401).json({ message: "Invalid or expired access token" })
+        console.log("Decoded token:", decoded);
+
+        res.json({ contacts });
+    } catch (err) {
+        console.error("JWT Error:", err.message);
+        res.status(401).json({ message: "Invalid or expired access token" });
     }
-
-
-})
+});
 
 
 app.post('/contact', (req, res) => {
