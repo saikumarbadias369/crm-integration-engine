@@ -44,13 +44,13 @@ app.post("/token", (req, res) => {
         }
         const client_id = refreshTokens[refresh_token]
 
-        const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "2m" })
+        const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "5m" })
         // const new_refresh_token = jwt.sign({ client_id }, "refresh-secrete", { expiresIn: "15m" })
 
         res.json({
             access_token: token,
             // refresh_token: refresh_token,
-            expires_in: 60
+            expires_in: 300
         })
     }
     if (grant_type === "authorization_code") {
@@ -58,7 +58,7 @@ app.post("/token", (req, res) => {
         if (!authorizationCodes[code] || authorizationCodes[code] !== client_id) {
             res.status(400).json({ message: "Invalid Authendication code" })
         }
-        const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "2m" })
+        const token = jwt.sign({ client_id }, "access-secrete", { expiresIn: "5m" })
         const refresh_token = jwt.sign({ client_id }, "refresh-secrete", { expiresIn: "10m" })
 
         refreshTokens[refresh_token] = client_id
@@ -67,7 +67,7 @@ app.post("/token", (req, res) => {
         res.json({
             access_token: token,
             refresh_token: refresh_token,
-            expires_in: 600
+            expires_in: 300
         })
     }
 
@@ -102,7 +102,7 @@ app.get("/contact", (req, res) => {
     const token = authHeader.split(" ")[1];
 
     try {
-        const decoded = jwt.verify(token, "access-secrete"); // ensure same secret
+        const decoded = jwt.verify(token, "access-secrete"); 
 
         console.log("Decoded token:", decoded);
 
